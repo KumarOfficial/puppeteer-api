@@ -13,15 +13,12 @@ app.get('/scrape', async (req, res) => {
   try {
     browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath(),
+      executablePath: chromium.executablePath,  // <-- important fix
       headless: chromium.headless,
-      ignoreHTTPSErrors: true,
     });
 
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-
-    // Return page title as example
     const title = await page.title();
 
     res.json({ title });
