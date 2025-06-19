@@ -17,7 +17,7 @@ app.get('/scrape', async (req, res) => {
   try {
     browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: chromium.executablePath,
+      executablePath: chromium.executablePath(),
       headless: chromium.headless,
     });
 
