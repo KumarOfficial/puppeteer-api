@@ -2,7 +2,7 @@ import express from "express";
 import puppeteer from "puppeteer";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;  // Use 8000 as default or env PORT
 
 app.get("/scrape", async (req, res) => {
   const { url } = req.query;
@@ -17,17 +17,18 @@ app.get("/scrape", async (req, res) => {
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: "domcontentloaded" });
 
-    const data = await page.evaluate(() => ({
-      title: document.title,
-      html: document.documentElement.innerHTML
-    }));
+    // You can add your scraping logic here, e.g., get page content
+    const content = await page.content();
 
     await browser.close();
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.toString() });
+
+    res.send(content);
+  } catch (error) {
+    res.status(500).send(`Error scraping URL: ${error.message}`);
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
