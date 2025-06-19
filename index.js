@@ -16,13 +16,15 @@ app.get('/scrape', async (req, res) => {
   let browser = null;
   try {
     browser = await puppeteer.launch({
-      args: chromium.args,
+      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
+      defaultViewport: chromium.defaultViewport,
+      ignoreHTTPSErrors: true
     });
 
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     const title = await page.title();
 
     res.json({ title });
