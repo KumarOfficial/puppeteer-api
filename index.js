@@ -5,6 +5,10 @@ const chromium = require('@sparticuz/chromium');
 const app = express();
 const port = process.env.PORT || 8000;
 
+app.get('/', (req, res) => {
+  res.send('Puppeteer API is running! Try /scrape?url=...');
+});
+
 app.get('/scrape', async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).send('Missing url parameter');
@@ -13,7 +17,7 @@ app.get('/scrape', async (req, res) => {
   try {
     browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: chromium.executablePath,  // <-- important fix
+      executablePath: chromium.executablePath,
       headless: chromium.headless,
     });
 
