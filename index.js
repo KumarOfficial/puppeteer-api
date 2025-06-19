@@ -15,11 +15,13 @@ app.get('/scrape', async (req, res) => {
       args: chromium.args,
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
+      ignoreHTTPSErrors: true,
     });
+
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
-    // Just return page title as example
+    // Return page title as example
     const title = await page.title();
 
     res.json({ title });
