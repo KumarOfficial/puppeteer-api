@@ -1,39 +1,37 @@
-import express from "express";
-import puppeteer from "puppeteer-core";
-import chromium from "chrome-aws-lambda";
+const express = require('express');
+const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const port = process.env.PORT || 8000;
 
-app.get("/", (req, res) => {
-  res.send("🎉 Puppeteer API is live! Use /scrape?url=YOUR_URL");
-});
+app.get('/scrape', async (req, res) => {
+  const url = req.query.url;
+  if (!url) return res.status(400).send('Missing url parameter');
 
-app.get("/scrape", async (req, res) => {
-  const { url } = req.query;
-  if (!url) return res.status(400).send("Missing ?url param");
-
+  let browser = null;
   try {
-    const browser = await puppeteer.launch({
-      executablePath: await chromium.executablePath,
+    browser = await puppeteer.launch({
       args: chromium.args,
+      executablePath: await chromium.executablePath(),
       headless: chromium.headless,
     });
-
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "domcontentloaded" });
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
-    const content = await page.content();
+    // Just return page title as example
+    const title = await page.title();
 
-    await browser.close();
-
-    res.send(content);
-  } catch (error) {
-    res.status(500).send(`Error scraping URL: ${error.message}`);
+    res.json({ title });
+  } catch (err) {
+    console.error('Error scraping URL:', err);
+    res.status(500).json({ error: 'Failed to scrape URL', details: err.message });
+  } finally {
+    if (browser) await browser.close();
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
 
