@@ -1,5 +1,6 @@
 import express from "express";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "chrome-aws-lambda";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -14,8 +15,9 @@ app.get("/scrape", async (req, res) => {
 
   try {
     const browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      executablePath: await chromium.executablePath,
+      args: chromium.args,
+      headless: chromium.headless,
     });
 
     const page = await browser.newPage();
