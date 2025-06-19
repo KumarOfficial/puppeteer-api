@@ -1,18 +1,17 @@
-import express from 'express';
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+const express = require('express');
+const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
 
 const app = express();
 const port = process.env.PORT || 8000;
 
 app.get('/', (req, res) => {
-  res.send('Puppeteer API running! Use /scrape or /scrape-posts with ?url=...');
+  res.send('Puppeteer API is running! Try /scrape?url=... or /scrape-posts?url=...');
 });
 
-// Endpoint 1: Full HTML + page metadata
 app.get('/scrape', async (req, res) => {
   const url = req.query.url;
-  if (!url) return res.status(400).json({ error: 'Missing url parameter' });
+  if (!url) return res.status(400).send('Missing url parameter');
 
   let browser;
   try {
@@ -21,26 +20,15 @@ app.get('/scrape', async (req, res) => {
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
     });
+
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-    const pageTitle = await page.title();
+    const title = await page.title();
+    const description = await page.$eval('meta[name="description"]', el => el.content).catch(() => null);
+    const html = await page.content();
 
-    const pageDescription = await page.$eval(
-      'head > meta[name="description"]',
-      el => el.content
-    ).catch(() => null);
-
-    const pageUrl = page.url();
-
-    const fullHTML = await page.content();
-
-    res.json({
-      pageUrl,
-      pageTitle,
-      pageDescription,
-      fullHTML,
-    });
+    res.json({ title, description, url: page.url(), html });
   } catch (err) {
     console.error('Error scraping URL:', err);
     res.status(500).json({ error: 'Failed to scrape URL', details: err.message });
@@ -49,10 +37,9 @@ app.get('/scrape', async (req, res) => {
   }
 });
 
-// Endpoint 2: List of all posts on the page
 app.get('/scrape-posts', async (req, res) => {
   const url = req.query.url;
-  if (!url) return res.status(400).json({ error: 'Missing url parameter' });
+  if (!url) return res.status(400).send('Missing url parameter');
 
   let browser;
   try {
@@ -61,21 +48,24 @@ app.get('/scrape-posts', async (req, res) => {
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
     });
+
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-    // Change '.post' selector to match posts on your target website
-    const posts = await page.$$eval('.post', (posts) =>
-      posts.map(post => {
-        const titleEl = post.querySelector('a, h2, h3');
-        const descEl = post.querySelector('.description, p, span');
-        return {
-          title: titleEl ? titleEl.innerText.trim() : null,
-          url: titleEl ? titleEl.href || titleEl.parentElement?.href || null : null,
-          description: descEl ? descEl.innerText.trim() : null,
-        };
-      })
-    );
+    await page.waitForSelector('a');
+
+    const posts = await page.$$eval('a', links => {
+      return links
+        .map(link => {
+          const title = link.innerText.trim();
+          const href = link.href;
+          if (title && href && href.startsWith('http')) {
+            return { title, url: href };
+          }
+          return null;
+        })
+        .filter(Boolean);
+    });
 
     res.json({ posts });
   } catch (err) {
