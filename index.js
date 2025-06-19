@@ -2,7 +2,11 @@ import express from "express";
 import puppeteer from "puppeteer";
 
 const app = express();
-const PORT = process.env.PORT || 8000;  // Use 8000 as default or env PORT
+const PORT = process.env.PORT || 8000;
+
+app.get("/", (req, res) => {
+  res.send("🎉 Puppeteer API is live! Use /scrape?url=YOUR_URL");
+});
 
 app.get("/scrape", async (req, res) => {
   const { url } = req.query;
@@ -11,13 +15,12 @@ app.get("/scrape", async (req, res) => {
   try {
     const browser = await puppeteer.launch({
       headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: "domcontentloaded" });
 
-    // You can add your scraping logic here, e.g., get page content
     const content = await page.content();
 
     await browser.close();
